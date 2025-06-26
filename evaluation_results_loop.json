@@ -1,0 +1,290 @@
+[
+  {
+    "question": "List all billing accounts with their corresponding sub-account names.",
+    "score": 0.7,
+    "explanation": "1. The generated SQL captures the intent of the question by selecting the same columns (`BillingAccountId`, `BillingAccountName`, `SubAccountId`, `SubAccountName`) from the same table as the ground-truth SQL. Therefore, it correctly addresses the major requirement of listing billing accounts with their corresponding sub-account names. 2. However, the ground-truth SQL uses a `GROUP BY` clause which suggests an intention to uniquely differentiate combinations of billing and sub-accounts, while the generated SQL lacks this grouping, leading to a significantly higher total row count (573,968) compared to the ground-truth (158). This discrepancy indicates that although the SQL queries share a similar structure, they don't achieve the same result due to the absence of grouping, affecting the completeness of the result.",
+    "generated_sql": "SELECT \"BillingAccountId\", \"BillingAccountName\", \"SubAccountId\", \"SubAccountName\" FROM focus_billing_table ORDER BY \"BillingAccountId\", \"SubAccountId\"",
+    "ground_truth_sql": "SELECT \"BillingAccountId\", \"BillingAccountName\", \"SubAccountId\", \"SubAccountName\" FROM focus_billing_table GROUP BY \"BillingAccountId\", \"BillingAccountName\", \"SubAccountId\", \"SubAccountName\";"
+  },
+  {
+    "question": "Group BilledCost by BillingAccountType.",
+    "score": 0.9,
+    "explanation": "The generated SQL captures the intent of grouping BilledCost by BillingAccountType and computes the sum appropriately. While it uses ROUND on the summed value (which is a minor change and does not impact logical correctness regarding grouping), the main difference in column naming (using \"BilledCost\" instead of \"total_billed_cost\") does not affect the essence of the result. Additionally, both queries effectively return one row that represents the same aggregated data. The slight rounding difference might lead to minor result discrepancies but does not change the overall correctness of capturing the intent of the query.",
+    "generated_sql": "SELECT \"BillingAccountType\", ROUND(SUM(\"BilledCost\"), 2) AS \"BilledCost\" FROM focus_billing_table GROUP BY \"BillingAccountType\" ORDER BY \"BilledCost\" DESC",
+    "ground_truth_sql": "SELECT \"BillingAccountType\", SUM(\"BilledCost\") AS total_billed_cost FROM focus_billing_table GROUP BY \"BillingAccountType\" ORDER BY total_billed_cost DESC;"
+  },
+  {
+    "question": "Count of sub-accounts by billing account.",
+    "score": 1.0,
+    "explanation": "1. Both the generated SQL and the ground-truth SQL accurately count the distinct `SubAccountId`s grouped by `BillingAccountId`, which is the main intent of the question. 2. The generated SQL includes a condition to exclude null `SubAccountId`s, which does not change the essence of the result if there are no nulls, thus maintaining correctness in capturing the intent.",
+    "generated_sql": "SELECT \"BillingAccountId\", COUNT(DISTINCT \"SubAccountId\") AS \"SubAccountCount\" FROM focus_billing_table WHERE NOT \"SubAccountId\" IS NULL GROUP BY \"BillingAccountId\" ORDER BY \"SubAccountCount\" DESC",
+    "ground_truth_sql": "SELECT \"BillingAccountId\", COUNT(DISTINCT \"SubAccountId\") AS subaccount_count FROM focus_billing_table GROUP BY \"BillingAccountId\";"
+  },
+  {
+    "question": "List Billing Account Names with more than 5 sub-accounts.",
+    "score": 0.4,
+    "explanation": "1) The generated SQL does attempt to capture the essence of the user's question, which is to list billing accounts with more than five sub-accounts. However, instead of providing the count of sub-accounts, it includes the \"SubAccountId\" in the final results, leading to a significantly larger output than expected and a loss of focus on billing accounts. 2) Additionally, the generated SQL does not explicitly display the sub-account count in the output, which is a critical part of the ground-truth result that summarizes the number of sub-accounts associated with each billing account name.",
+    "generated_sql": "WITH AccountCounts AS (SELECT \"BillingAccountName\", COUNT(DISTINCT \"SubAccountId\") AS SubAccountCount FROM focus_billing_table GROUP BY \"BillingAccountName\" HAVING COUNT(DISTINCT \"SubAccountId\") > 5) SELECT fbt.\"BillingAccountName\", fbt.\"SubAccountId\" FROM focus_billing_table AS fbt JOIN AccountCounts AS ac ON fbt.\"BillingAccountName\" = ac.\"BillingAccountName\" ORDER BY fbt.\"BillingAccountName\", fbt.\"SubAccountId\"",
+    "ground_truth_sql": "SELECT \"BillingAccountName\", COUNT(DISTINCT \"SubAccountId\") AS subaccount_count FROM focus_billing_table GROUP BY \"BillingAccountName\" HAVING COUNT(DISTINCT \"SubAccountId\") > 5;"
+  },
+  {
+    "question": "Which billing accounts have no sub-accounts?",
+    "score": 0.8,
+    "explanation": "The generated SQL correctly identifies billing accounts where the sub-accounts are NULL, matching the core intent of the original question. However, it unnecessarily includes an additional column (\"SubAccountId\") with a NULL value, which doesn't align perfectly with the intent of fetching only the \"BillingAccountId\". While it doesn't affect the filtering logic, the additional column makes the output slightly more complex than required. Thus, the essence of the result is close, but not entirely equivalent.",
+    "generated_sql": "SELECT \"BillingAccountId\", NULL AS \"SubAccountId\" FROM focus_billing_table WHERE \"SubAccountId\" IS NULL GROUP BY \"BillingAccountId\" ORDER BY \"BillingAccountId\"",
+    "ground_truth_sql": "SELECT \"BillingAccountId\" FROM focus_billing_table WHERE \"SubAccountId\" IS NULL GROUP BY \"BillingAccountId\";"
+  },
+  {
+    "question": "Summarize total cost by billing and sub-account names.",
+    "score": 0.9,
+    "explanation": "1. The generated SQL correctly captures the intent of summarizing total costs by billing and sub-account names, utilizing the same grouping and a SUM function, although it rounds the total billed cost to two decimal places. 2. The main difference lies in the alias used for the summed cost; the generated SQL labels it \"BilledCost\" instead of \"total_billed_cost,\" which slightly diverges from the ground-truth. However, the essential output remains logically equivalent, just with a different naming convention.",
+    "generated_sql": "SELECT \"BillingAccountName\", \"SubAccountName\", ROUND(SUM(\"BilledCost\"), 2) AS \"BilledCost\" FROM focus_billing_table GROUP BY \"BillingAccountName\", \"SubAccountName\" ORDER BY \"BillingAccountName\", \"SubAccountName\"",
+    "ground_truth_sql": "SELECT \"BillingAccountName\", \"SubAccountName\", SUM(\"BilledCost\") AS total_billed_cost FROM focus_billing_table GROUP BY \"BillingAccountName\", \"SubAccountName\";"
+  },
+  {
+    "question": "Show billing and sub-account types for all entities with 'apps' in the name.",
+    "score": 1.0,
+    "explanation": "1. The generated SQL correctly captures the intent of the question by selecting the columns specified in the ground-truth SQL and applying the same filtering criteria for entities with 'apps' in their names.  \n2. Both the ground-truth and generated SQL produce the same result (0 total rows), and they both summarize the result identically, thus confirming the correctness of the output despite the additional ORDER BY clause in the generated SQL, which does not affect the result.",
+    "generated_sql": "SELECT \"BillingAccountName\", \"BillingAccountType\", \"SubAccountName\", \"SubAccountType\" FROM focus_billing_table WHERE LOWER(\"BillingAccountName\") LIKE '%apps%' OR LOWER(\"SubAccountName\") LIKE '%apps%' ORDER BY \"BillingAccountName\", \"SubAccountName\"",
+    "ground_truth_sql": "SELECT \"BillingAccountName\", \"BillingAccountType\", \"SubAccountName\", \"SubAccountType\" FROM focus_billing_table WHERE LOWER(\"BillingAccountName\") LIKE '%apps%' OR LOWER(\"SubAccountName\") LIKE '%apps%';"
+  },
+  {
+    "question": "Which billing accounts contain sub-accounts of type 'Subscription'?",
+    "score": 0.7,
+    "explanation": "The generated SQL captures the intent of retrieving billing accounts with sub-accounts of type 'Subscription', but it introduces an unnecessary inclusion of the \"SubAccountType\" column in the results instead of solely focusing on the \"BillingAccountId\". Additionally, while the generated SQL uses DISTINCT, the ground-truth SQL uses GROUP BY, which serves a similar purpose. Although both queries effectively filter by \"SubAccountType\", the extra column in the generated result deviates from the original request, which impacts its correctness slightly.",
+    "generated_sql": "SELECT DISTINCT \"BillingAccountId\", \"SubAccountType\" FROM focus_billing_table WHERE \"SubAccountType\" = 'Subscription' ORDER BY \"BillingAccountId\"",
+    "ground_truth_sql": "SELECT \"BillingAccountId\" FROM focus_billing_table WHERE \"SubAccountType\" = 'Subscription' GROUP BY \"BillingAccountId\";"
+  },
+  {
+    "question": "Give me a list of all billing and sub-account IDs.",
+    "score": 1.0,
+    "explanation": "1. The generated SQL successfully retrieves the same columns (\"BillingAccountId\" and \"SubAccountId\") from the same table as the ground-truth SQL, fulfilling the user's request for a list of billing and sub-account IDs. 2. The total number of rows returned matches between the ground-truth and generated results, confirming that both queries yield equivalent result sets, despite the generated SQL including an ORDER BY clause, which does not affect the essence of the output.",
+    "generated_sql": "SELECT \"BillingAccountId\", \"SubAccountId\" FROM focus_billing_table ORDER BY \"BillingAccountId\", \"SubAccountId\"",
+    "ground_truth_sql": "SELECT \"BillingAccountId\", \"SubAccountId\" FROM focus_billing_table;"
+  },
+  {
+    "question": "Which sub-accounts are tagged under the same BillingAccountName more than once?",
+    "score": 0.9,
+    "explanation": "1. The generated SQL correctly identifies sub-accounts associated with the same BillingAccountName more than once, which aligns with the intent of the question. It groups by both BillingAccountName and SubAccountName and applies a HAVING clause to filter those occurring more than once.\n2. However, it does not include the COUNT(*) as an output column, which provides valuable information about how many times each sub-account is associated with the billing account. This slight omission affects the completeness of the result, but the logical intent remains intact.",
+    "generated_sql": "SELECT \"BillingAccountName\", \"SubAccountName\" FROM focus_billing_table GROUP BY \"BillingAccountName\", \"SubAccountName\" HAVING COUNT(*) > 1 ORDER BY \"BillingAccountName\", \"SubAccountName\"",
+    "ground_truth_sql": "SELECT \"BillingAccountName\", \"SubAccountName\", COUNT(*) AS occurrence_count FROM focus_billing_table GROUP BY \"BillingAccountName\", \"SubAccountName\" HAVING COUNT(*) > 1;"
+  },
+  {
+    "question": "List all account names grouped by BillingAccountType.",
+    "score": null,
+    "explanation": null,
+    "generated_sql": null,
+    "ground_truth_sql": "SELECT \"BillingAccountType\", \"BillingAccountName\" FROM focus_billing_table GROUP BY \"BillingAccountType\", \"BillingAccountName\";",
+    "error": "Error code: 429 - {'error': {'message': 'Request too large for gpt-4o-mini in organization org-ZspcY1LU7atIOFkw76SRCrDx on tokens per min (TPM): Limit 200000, Requested 2439803. The input or output tokens must be reduced in order to run successfully. Visit https://platform.openai.com/account/rate-limits to learn more.', 'type': 'tokens', 'param': None, 'code': 'rate_limit_exceeded'}}"
+  },
+  {
+    "question": "Show full account hierarchy by billing and sub-account IDs and names.",
+    "score": 1.0,
+    "explanation": "1) The generated SQL query captures the intent of the user's question by selecting the same columns as the ground-truth SQL, which are the Billing and Sub-account IDs and names. 2) The total number of rows returned and sample rows appear to match the ground-truth result summary, indicating that the output is equivalent in essence despite the inclusion of an ORDER BY clause in the generated SQL.",
+    "generated_sql": "SELECT \"BillingAccountId\", \"BillingAccountName\", \"SubAccountId\", \"SubAccountName\" FROM focus_billing_table ORDER BY \"BillingAccountId\", \"SubAccountId\"",
+    "ground_truth_sql": "SELECT \"BillingAccountId\", \"BillingAccountName\", \"SubAccountId\", \"SubAccountName\" FROM focus_billing_table;"
+  },
+  {
+    "question": "Export all account metadata including IDs, names, and types.",
+    "score": 1.0,
+    "explanation": "1. The generated SQL captures all required columns (IDs, names, and types) exactly as requested in the natural language question. 2. Both the ground-truth and generated SQL queries retrieve the same total number of rows (573968) with identical column names, confirming that they provide the essence of the same query output. The inclusion of an ORDER BY clause in the generated SQL does not alter the captured intent or overall correctness.",
+    "generated_sql": "SELECT \"BillingAccountId\", \"BillingAccountName\", \"BillingAccountType\", \"SubAccountId\", \"SubAccountName\", \"SubAccountType\" FROM focus_billing_table ORDER BY \"BillingAccountId\", \"SubAccountId\"",
+    "ground_truth_sql": "SELECT \"BillingAccountId\", \"BillingAccountName\", \"BillingAccountType\", \"SubAccountId\", \"SubAccountName\", \"SubAccountType\" FROM focus_billing_table;"
+  },
+  {
+    "question": "Show the BilledCost and EffectiveCost by region for each virtual machine SKU.",
+    "score": 0.7,
+    "explanation": "1. The generated SQL captures the essence of the query by attempting to retrieve the billed and effective costs grouped by region and SKU, which aligns with the intention of the original question. However, it introduces additional conditions (HAVING clause) that filter out any SKU or region with zero costs, resulting in fewer rows (909) compared to the ground-truth (1027) which may exclude some relevant data.\n2. Additionally, the generated SQL rounds the summed costs to two decimal places, which is a different approach compared to the ground-truth result that does not apply any rounding. This change alters the precision of the output, affecting the correctness of the summary of results despite retaining the core intent of the original question.",
+    "generated_sql": "SELECT \"RegionName\", \"SkuId\", ROUND(SUM(\"BilledCost\"), 2) AS \"BilledCost\", ROUND(SUM(\"EffectiveCost\"), 2) AS \"EffectiveCost\" FROM focus_billing_table WHERE NOT \"SkuId\" IS NULL AND NOT \"RegionName\" IS NULL GROUP BY \"RegionName\", \"SkuId\" HAVING SUM(\"BilledCost\") > 0 OR SUM(\"EffectiveCost\") > 0 ORDER BY \"RegionName\", SUM(\"BilledCost\") DESC",
+    "ground_truth_sql": "SELECT \"RegionName\", \"SkuId\", SUM(\"BilledCost\") AS total_billed_cost, SUM(\"EffectiveCost\") AS total_effective_cost FROM focus_billing_table GROUP BY \"RegionName\", \"SkuId\";"
+  },
+  {
+    "question": "Compare ListCost and ContractedCost for storage services in Jan and Feb",
+    "score": 0.3,
+    "explanation": "The generated SQL does aim to filter data based on the \"ServiceName\" containing \"storage\" and the charge periods in January and February, which is aligned with the question's intent. However, it fails to correctly calculate the summed costs (ListCost and ContractedCost) per storage service, which is critical to answering the question. Instead, it retrieves individual records instead of aggregating the costs, leading to a significant mismatch with the ground-truth's focus on total costs. Additionally, the absence of any rows in the generated result suggests that the filtering criteria may be too restrictive or incorrect.",
+    "generated_sql": "SELECT \"ServiceName\", \"ChargePeriodStart\", \"ChargePeriodEnd\", ROUND(\"ListCost\", 2) AS \"ListCost\", ROUND(\"ContractedCost\", 2) AS \"ContractedCost\" FROM focus_billing_table WHERE \"ServiceName\" LIKE '%storage%' AND ((EXTRACT(MONTH FROM \"ChargePeriodStart\") = 1 OR EXTRACT(MONTH FROM \"ChargePeriodStart\") = 2) OR (EXTRACT(MONTH FROM \"ChargePeriodEnd\") = 1 OR EXTRACT(MONTH FROM \"ChargePeriodEnd\") = 2)) ORDER BY \"ServiceName\", \"ChargePeriodStart\"",
+    "ground_truth_sql": "SELECT \"ServiceName\", SUM(\"ListCost\") AS total_list_cost, SUM(\"ContractedCost\") AS total_contracted_cost FROM focus_billing_table WHERE \"ServiceName\" ILIKE '%storage%' AND \"ChargePeriodStart\" >= '2025-01-01' AND \"ChargePeriodEnd\" <= '2025-02-28' GROUP BY \"ServiceName\";"
+  },
+  {
+    "question": "Get total ConsumedQuantity and BilledCost for each ServiceCategory.",
+    "score": 0.8,
+    "explanation": "1. The generated SQL correctly attempts to calculate the total `ConsumedQuantity` and `BilledCost` grouped by `ServiceCategory`, which aligns with the intent of the user's question. However, it uses different aliases for the sum results (the ground-truth uses `total_consumed_quantity` and `total_billed_cost`, while the generated SQL uses `ConsumedQuantity` and `BilledCost`), but this does not significantly affect the output as the logic remains intact.\n  \n2. The generated SQL also adds an `ORDER BY` clause that is not present in the ground-truth SQL. While this does not change the correctness of the computed sums, it alters the presentation of the result, which is not what the user explicitly requested. If the ordering influenced the required result set in a way that omitted or included data points, the score would have been lower. However, since both SQL queries return 15 rows, the additional sorting is not detrimental.\n\nOverall, the generated SQL nearly captures the essence of the question and produces a similar result, hence a score of 0.8.",
+    "generated_sql": "SELECT \"ServiceCategory\", SUM(\"ConsumedQuantity\") AS \"ConsumedQuantity\", ROUND(SUM(\"BilledCost\"), 2) AS \"BilledCost\" FROM focus_billing_table GROUP BY \"ServiceCategory\" ORDER BY \"BilledCost\" DESC",
+    "ground_truth_sql": "SELECT \"ServiceCategory\", SUM(\"ConsumedQuantity\") AS total_consumed_quantity, SUM(\"BilledCost\") AS total_billed_cost FROM focus_billing_table GROUP BY \"ServiceCategory\";"
+  },
+  {
+    "question": "List average ContractedUnitPrice for each SKU in a sub-account.",
+    "score": 0.8,
+    "explanation": "1. The generated SQL captures the intent of the original question by calculating the average \"ContractedUnitPrice\" for each combination of \"SubAccountId\", \"SkuId\", \"SubAccountName\", and \"PricingUnit\", which aligns with the ground-truth SQL's intent to list averages for each SKU in a sub-account.\n2. However, the ground-truth SQL explicitly groups by \"SubAccountId\", \"SubAccountName\", \"SkuId\", and \"PricingUnit\" while the generated SQL rounds the average and differs slightly in the naming (\"ContractedUnitPrice\" instead of \"avg_contracted_unit_price\"). The difference in the column name and the rounding of the average could affect the essential meaning of the results. Therefore, I assigned a score of 0.8 for the overall correctness and intent capture.",
+    "generated_sql": "SELECT ROUND(AVG(\"ContractedUnitPrice\"), 2) AS \"ContractedUnitPrice\", \"SkuId\", \"SubAccountId\", \"SubAccountName\", \"PricingUnit\" FROM focus_billing_table WHERE NOT \"SubAccountId\" IS NULL GROUP BY \"SkuId\", \"SubAccountId\", \"SubAccountName\", \"PricingUnit\" ORDER BY \"SubAccountId\", \"SkuId\"",
+    "ground_truth_sql": "SELECT \"SubAccountId\", \"SubAccountName\", \"SkuId\", \"PricingUnit\", AVG(\"ContractedUnitPrice\") AS avg_contracted_unit_price FROM focus_billing_table GROUP BY \"SubAccountId\", \"SubAccountName\", \"SkuId\", \"PricingUnit\";"
+  },
+  {
+    "question": "Show EffectiveCost and ListCost for compute workloads by Billing Currency.",
+    "score": 0.9,
+    "explanation": "The generated SQL captures the essence of the ground-truth query by selecting the same columns and filtering by \"BillingCurrency\" and \"ServiceCategory\". However, the filter condition on \"ServiceCategory\" uses an exact match ('Compute') instead of a pattern matching condition (ILIKE '%compute%') as in the ground-truth SQL. This could potentially exclude some relevant rows, depending on the actual data contents. Additionally, ROUND is applied to the sum from the generated SQL while the ground-truth does not apply this rounding. Despite these differences, the results are still logically close, particularly since the total number of rows and the structure are consistent. Hence, a score of 0.9 is appropriate, acknowledging both similarity and some slight discrepancies.",
+    "generated_sql": "SELECT \"BillingCurrency\", \"ServiceCategory\", ROUND(SUM(\"EffectiveCost\"), 2) AS \"EffectiveCost\", ROUND(SUM(\"ListCost\"), 2) AS \"ListCost\" FROM focus_billing_table WHERE \"ServiceCategory\" = 'Compute' /* Filter for compute workloads */ GROUP BY \"BillingCurrency\", \"ServiceCategory\" ORDER BY \"EffectiveCost\" DESC",
+    "ground_truth_sql": "SELECT \"BillingCurrency\", \"ServiceCategory\", SUM(\"EffectiveCost\") AS total_effective_cost, SUM(\"ListCost\") AS total_list_cost FROM focus_billing_table WHERE \"ServiceCategory\" ILIKE '%compute%' GROUP BY \"BillingCurrency\", \"ServiceCategory\";"
+  },
+  {
+    "question": "Top 10 SKUs with the highest difference between ListCost and EffectiveCost.",
+    "score": 0.2,
+    "explanation": "1. The generated SQL does not group the data by \"SkuId\" or calculate the totals for \"ListCost\" and \"EffectiveCost,\" which are essential to providing the overall cost difference for each SKU. Instead, it just retrieves individual entries without aggregation, failing to capture the intent of summarizing costs for each SKU.\n2. The result output columns do not include the necessary derived column \"cost_difference,\" which is directly requested in the user question (\"highest difference between ListCost and EffectiveCost\"), indicating a fundamental misunderstanding of the original request.",
+    "generated_sql": "SELECT \"SkuId\", \"ListCost\", \"EffectiveCost\" FROM focus_billing_table ORDER BY (\"ListCost\" - \"EffectiveCost\") DESC LIMIT 10",
+    "ground_truth_sql": "SELECT \"SkuId\", SUM(\"ListCost\") AS total_list_cost, SUM(\"EffectiveCost\") AS total_effective_cost, SUM(\"ListCost\" - \"EffectiveCost\") AS cost_difference FROM focus_billing_table GROUP BY \"SkuId\" ORDER BY cost_difference DESC LIMIT 10;"
+  },
+  {
+    "question": "How much storage was consumed in GB in Jan 2025?",
+    "score": 0.7,
+    "explanation": "1. The generated SQL captures the essential filter criteria of the ground-truth query by ensuring the unit is 'GB' and filtering for the specified month of January 2025. However, it uses a different method (DATE_TRUNC vs. date range) to filter the date, which may not be logically equivalent in all scenarios.\n2. The generated SQL outputs additional columns (ServiceName and ChargePeriodStart) that are not needed according to the original question, which specifically asked only for the total storage consumed in GB. This alters the relevance of the results but still maintains some alignment with the intent.",
+    "generated_sql": "SELECT \"ServiceName\", \"ConsumedQuantity\", \"ConsumedUnit\", \"ChargePeriodStart\" FROM focus_billing_table WHERE \"ConsumedUnit\" = 'GB' AND DATE_TRUNC('MONTH', \"ChargePeriodStart\") = DATE_TRUNC('MONTH', CAST('2025-01-01' AS DATE)) AND \"ServiceName\" LIKE '%Storage%' ORDER BY \"ConsumedQuantity\" DESC",
+    "ground_truth_sql": "SELECT SUM(\"ConsumedQuantity\") AS total_consumed_gb, \"ConsumedUnit\" FROM focus_billing_table WHERE LOWER(\"ServiceName\") LIKE '%storage%' AND \"ConsumedUnit\" = 'GB' AND \"ChargePeriodStart\" >= '2025-01-01' AND \"ChargePeriodStart\" < '2025-02-01' GROUP BY \"ConsumedUnit\";"
+  },
+  {
+    "question": "Compare BilledCost vs ContractedCost for production vs non-production environments.",
+    "score": null,
+    "explanation": null,
+    "generated_sql": null,
+    "ground_truth_sql": "SELECT \"Tags\" ->> 'Environment' AS environment_type, SUM(\"BilledCost\") AS total_billed_cost, SUM(\"ContractedCost\") AS total_contracted_cost FROM focus_billing_table WHERE \"Tags\"::jsonb ? 'Environment' AND (\"Tags\" ->> 'Environment') ~* '^(prod|production)$' GROUP BY \"Tags\" ->> 'Environment';",
+    "error": "cannot unpack non-iterable NoneType object"
+  },
+  {
+    "question": "Show all resources billed in USD with ListCost over $1000.",
+    "score": 0.5,
+    "explanation": "The generated SQL correctly filters by \"BillingCurrency\" = 'USD' and \"ListCost\" > 1000, which aligns with the intent of the question. However, it fails to include the necessary time conditions (\"ChargePeriodStart\" >= '2025-01-01' AND \"ChargePeriodStart\" < '2025-02-01') from the ground-truth SQL, which could significantly affect the completeness and correctness of the results.",
+    "generated_sql": "SELECT \"ListCost\", \"BillingCurrency\", \"ResourceId\" FROM focus_billing_table WHERE \"BillingCurrency\" = 'USD' AND \"ListCost\" > 1000 ORDER BY \"ListCost\" DESC",
+    "ground_truth_sql": "SELECT \"ResourceId\", \"ListCost\", \"BillingCurrency\" FROM focus_billing_table WHERE \"BillingCurrency\" = 'AUD' AND \"ListCost\" > 1000 AND \"ChargePeriodStart\" >= '2025-01-01' AND \"ChargePeriodStart\" < '2025-02-01';"
+  },
+  {
+    "question": "What was the average EffectiveCost per GB of storage consumed?",
+    "score": 0.2,
+    "explanation": "1. The generated SQL does not calculate the average EffectiveCost per GB but rather sums the EffectiveCost and the ConsumedQuantity, resulting in different metrics that do not address the average cost intent of the question.\n2. Furthermore, the generated SQL groups by \"ConsumedUnit\" without filtering for the service name related to storage, which is a crucial component of the ground-truth SQL query and directly affects the correctness of the output.",
+    "generated_sql": "SELECT ROUND(SUM(\"EffectiveCost\"), 2) AS \"EffectiveCost\", SUM(\"ConsumedQuantity\") AS \"ConsumedQuantity\", \"ConsumedUnit\" FROM focus_billing_table WHERE \"ConsumedUnit\" = 'GB' GROUP BY \"ConsumedUnit\"",
+    "ground_truth_sql": "SELECT AVG(\"EffectiveCost\" / NULLIF(\"ConsumedQuantity\", 0)) AS avg_effective_cost_per_gb FROM focus_billing_table WHERE LOWER(\"ConsumedUnit\") = 'gb' AND LOWER(\"ServiceName\") LIKE '%storage%';"
+  },
+  {
+    "question": "How does ContractedCost compare to BilledCost by provider?",
+    "score": 0.9,
+    "explanation": "1. The generated SQL closely matches the intent of the ground-truth SQL by grouping the results by provider and summing both \"ContractedCost\" and \"BilledCost\". However, it uses rounding in its output and different aliases for the summed columns which slightly alters the essence of the resultant data representation.\n2. The filtering condition in the generated SQL excludes rows with NULL values for \"ContractedCost\" and \"BilledCost\", which does not appear in the ground-truth query. While this might enhance data quality, it could lead to differences in the result set size if NULL values exist in the actual data, hence slightly impacting the completeness of the result.",
+    "generated_sql": "SELECT \"ProviderName\", ROUND(SUM(\"ContractedCost\"), 2) AS \"ContractedCost\", ROUND(SUM(\"BilledCost\"), 2) AS \"BilledCost\" FROM focus_billing_table WHERE NOT \"ContractedCost\" IS NULL AND NOT \"BilledCost\" IS NULL GROUP BY \"ProviderName\" ORDER BY \"ProviderName\"",
+    "ground_truth_sql": "SELECT \"ProviderName\", SUM(\"ContractedCost\") AS total_contracted_cost, SUM(\"BilledCost\") AS total_billed_cost FROM focus_billing_table GROUP BY \"ProviderName\";"
+  },
+  {
+    "question": "Which services had a unit price increase over the last quarter?",
+    "score": 0.9,
+    "explanation": "1. Both the ground-truth SQL and the generated SQL aim to identify services that had a unit price increase by comparing the current quarter's unit prices to those from the previous quarter. While the ground-truth uses specific dates to define the quarters, the generated SQL uses a more dynamic method by employing `DATE_TRUNC` and `CURRENT_DATE`, which effectively accomplishes the same intent.\n2. The generated SQL checks for increases in both list and contracted unit prices, aligning with the inquiry about unit price increases, similar to how the ground-truth focused on the list prices specifically. The main distinction between them is the handling of contracted unit prices, but since the question only explicitly asks about unit price increases, the generated SQL remains largely correct in fulfilling the question's intent.",
+    "generated_sql": "WITH CurrentQuarter AS (SELECT \"ServiceName\", \"ListUnitPrice\", \"ContractedUnitPrice\", \"ChargePeriodStart\", DATE_TRUNC('QUARTER', \"ChargePeriodStart\") AS Quarter FROM focus_billing_table WHERE DATE_TRUNC('QUARTER', \"ChargePeriodStart\") = DATE_TRUNC('QUARTER', CURRENT_DATE)), PreviousQuarter AS (SELECT \"ServiceName\", \"ListUnitPrice\" AS PrevListUnitPrice, \"ContractedUnitPrice\" AS PrevContractedUnitPrice, DATE_TRUNC('QUARTER', \"ChargePeriodStart\") AS Quarter FROM focus_billing_table WHERE DATE_TRUNC('QUARTER', \"ChargePeriodStart\") = DATE_TRUNC('QUARTER', CURRENT_DATE - INTERVAL '3 MONTHS')) SELECT c.\"ServiceName\", c.\"ListUnitPrice\", c.\"ContractedUnitPrice\", c.\"ChargePeriodStart\" FROM CurrentQuarter AS c JOIN PreviousQuarter AS p ON c.\"ServiceName\" = p.\"ServiceName\" WHERE c.\"ListUnitPrice\" > p.PrevListUnitPrice OR c.\"ContractedUnitPrice\" > p.PrevContractedUnitPrice ORDER BY c.\"ServiceName\", c.\"ChargePeriodStart\"",
+    "ground_truth_sql": "WITH jan_data AS (SELECT \"ServiceName\", AVG(\"ListUnitPrice\") AS jan_list_price, AVG(\"ContractedUnitPrice\") AS jan_contracted_price FROM focus_billing_table WHERE \"ChargePeriodStart\" >= '2025-01-01' AND \"ChargePeriodStart\" < '2025-02-01' GROUP BY \"ServiceName\"), feb_data AS (SELECT \"ServiceName\", AVG(\"ListUnitPrice\") AS feb_list_price, AVG(\"ContractedUnitPrice\") AS feb_contracted_price FROM focus_billing_table WHERE \"ChargePeriodStart\" >= '2025-02-01' AND \"ChargePeriodStart\" < '2025-03-01' GROUP BY \"ServiceName\") SELECT feb.\"ServiceName\", jan.jan_list_price, feb.feb_list_price, jan.jan_contracted_price, feb.feb_contracted_price FROM jan_data jan JOIN feb_data feb ON jan.\"ServiceName\" = feb.\"ServiceName\" WHERE feb.feb_list_price > jan.jan_list_price;"
+  },
+  {
+    "question": "Compare ConsumedQuantity and unit price by SKU across billing accounts.",
+    "score": 0.6,
+    "explanation": "1. The generated SQL captures the intent of comparing `ConsumedQuantity` and `ContractedUnitPrice` by `SkuId` and `BillingAccountId`, which aligns with the ground-truth SQL. However, the inclusion of a `WHERE` clause filtering for positive `ConsumedQuantity` changes the set of results by excluding rows where `ConsumedQuantity` is zero, potentially altering the overall comparison intended by the original question.  \n2. The generated SQL rounds the calculated values, which affects the precision of the results compared to the ground-truth SQL that does not apply any rounding. This deviation compromises the exactness of the result summaries, resulting in a lower score despite both queries retaining the logical structure needed to address the original query intent.",
+    "generated_sql": "SELECT \"SkuId\", \"BillingAccountId\", ROUND(SUM(\"ConsumedQuantity\"), 2) AS \"ConsumedQuantity\", ROUND(AVG(\"ContractedUnitPrice\"), 2) AS \"ContractedUnitPrice\" FROM focus_billing_table WHERE \"ConsumedQuantity\" > 0 GROUP BY \"SkuId\", \"BillingAccountId\" ORDER BY \"SkuId\", \"BillingAccountId\"",
+    "ground_truth_sql": "SELECT \"SkuId\", \"BillingAccountId\", SUM(\"ConsumedQuantity\") AS total_consumed_quantity, AVG(\"ContractedUnitPrice\") AS avg_contracted_unit_price FROM focus_billing_table GROUP BY \"SkuId\", \"BillingAccountId\";"
+  },
+  {
+    "question": "What is the EffectiveCost trend for AI workloads in the Jan and Feb 2025?",
+    "score": null,
+    "explanation": null,
+    "generated_sql": null,
+    "ground_truth_sql": "SELECT DATE_TRUNC('month', \"ChargePeriodStart\") AS month, SUM(\"EffectiveCost\") AS total_effective_cost FROM focus_billing_table WHERE LOWER(\"ServiceCategory\") LIKE '%ai%' AND \"ChargePeriodStart\" >= '2025-01-01' AND \"ChargePeriodStart\" < '2025-03-01' GROUP BY month ORDER BY month;",
+    "error": "cannot unpack non-iterable NoneType object"
+  },
+  {
+    "question": "Show ListCost and ContractedCost for all tagged production resources.",
+    "score": null,
+    "explanation": null,
+    "generated_sql": null,
+    "ground_truth_sql": "SELECT \"Tags\" ->> 'Environment' AS environment_type, SUM(\"ListCost\") AS total_list_cost, SUM(\"ContractedCost\") AS total_contracted_cost FROM focus_billing_table WHERE \"Tags\"::jsonb ? 'Environment' AND (\"Tags\" ->> 'Environment') ~* '^(prod|production)$' GROUP BY \"Tags\" ->> 'Environment';",
+    "error": "cannot unpack non-iterable NoneType object"
+  },
+  {
+    "question": "Break down EffectiveCost by service and region in the first two month of the first quarter",
+    "score": 0.4,
+    "explanation": "1. The generated SQL does not properly group the data by month, which is a key requirement in the original query. Instead, it retains the exact date (\"ChargePeriodStart\") instead of truncating it to the month, resulting in the potential for a significantly increased number of rows in the output. 2. While both queries filter to the first two months of the first quarter, the generated SQL lacks the ordered summary by month as requested and does not compute the \"total_effective_cost\" accurately as it returns the sum directly as \"EffectiveCost\" without a dedicated field for total cost.",
+    "generated_sql": "SELECT \"ServiceName\", \"RegionName\", \"ChargePeriodStart\", ROUND(SUM(\"EffectiveCost\"), 2) AS \"EffectiveCost\" FROM focus_billing_table WHERE EXTRACT(MONTH FROM \"ChargePeriodStart\") IN (1, 2) /* January and February */ AND EXTRACT(QUARTER FROM \"ChargePeriodStart\") = 1 /* First quarter */ GROUP BY \"ServiceName\", \"RegionName\", \"ChargePeriodStart\" ORDER BY \"ChargePeriodStart\", \"EffectiveCost\" DESC",
+    "ground_truth_sql": "SELECT \"ServiceName\", \"RegionName\", DATE_TRUNC('month', \"ChargePeriodStart\") AS month, SUM(\"EffectiveCost\") AS total_effective_cost FROM focus_billing_table WHERE \"ChargePeriodStart\" >= '2025-01-01' AND \"ChargePeriodStart\" < '2025-03-01' GROUP BY \"ServiceName\", \"RegionName\", DATE_TRUNC('month', \"ChargePeriodStart\") ORDER BY \"ServiceName\", \"RegionName\", month;"
+  },
+  {
+    "question": "Find any SKUs where the ListUnitPrice changed in the first two months of the first quarter",
+    "score": null,
+    "explanation": null,
+    "generated_sql": null,
+    "ground_truth_sql": "SELECT \"SkuId\", \"ListUnitPrice\", DATE_TRUNC('month', \"ChargePeriodStart\") AS month FROM focus_billing_table WHERE \"ChargePeriodStart\" >= '2025-01-01' AND \"ChargePeriodStart\" < '2025-03-01' AND \"SkuId\" IN (SELECT \"SkuId\" FROM focus_billing_table WHERE \"ChargePeriodStart\" >= '2025-01-01' AND \"ChargePeriodStart\" < '2025-03-01' GROUP BY \"SkuId\" HAVING COUNT(DISTINCT \"ListUnitPrice\") > 1) GROUP BY \"SkuId\", DATE_TRUNC('month', \"ChargePeriodStart\"), \"ListUnitPrice\" ORDER BY \"SkuId\", month;",
+    "error": "cannot unpack non-iterable NoneType object"
+  },
+  {
+    "question": "How much did we spend in ContractedCost vs BilledCost across currencies?",
+    "score": null,
+    "explanation": null,
+    "generated_sql": null,
+    "ground_truth_sql": "SELECT \"BillingCurrency\", SUM(\"BilledCost\") AS total_billed_cost, SUM(\"ContractedCost\") AS total_contracted_cost FROM focus_billing_table GROUP BY \"BillingCurrency\";",
+    "error": "cannot unpack non-iterable NoneType object"
+  },
+  {
+    "question": "Show total Effective Cost per month for the last 2 billing periods.",
+    "score": 0.3,
+    "explanation": "1. The generated SQL does not aggregate the \"EffectiveCost\" per month; instead, it groups by \"BillingPeriodStart\" and \"BillingPeriodEnd\", which deviates from the request for total effective cost per month for the last 2 billing periods. The ground-truth SQL accurately summarizes costs per month.\n2. The ground-truth query specifically filters for records from the last two months, while the generated SQL selects distinct billing periods without ensuring they only pertain to the last two billing periods in a correct manner, leading to potentially incorrect results.",
+    "generated_sql": "SELECT ROUND(SUM(\"EffectiveCost\"), 2) AS \"EffectiveCost\", \"BillingPeriodStart\", \"BillingPeriodEnd\" FROM focus_billing_table WHERE (\"BillingPeriodStart\", \"BillingPeriodEnd\") IN (SELECT DISTINCT \"BillingPeriodStart\", \"BillingPeriodEnd\" FROM focus_billing_table ORDER BY \"BillingPeriodStart\" DESC LIMIT 2) GROUP BY \"BillingPeriodStart\", \"BillingPeriodEnd\" ORDER BY \"BillingPeriodStart\" DESC",
+    "ground_truth_sql": "SELECT DATE_TRUNC('month', \"BillingPeriodStart\") AS month, SUM(\"EffectiveCost\") AS totaleffectivecost FROM focus_billing_table WHERE \"BillingPeriodStart\" >= (CURRENT_DATE - INTERVAL '2 months') AND \"EffectiveCost\" IS NOT NULL GROUP BY DATE_TRUNC('month', \"BillingPeriodStart\") ORDER BY month ASC;"
+  },
+  {
+    "question": "Which resources had charges spanning multiple charge periods?",
+    "score": 0.4,
+    "explanation": "The generated SQL captures the idea of identifying resources with charges spanning different time periods by comparing the start and end dates of charge periods. However, it does not align with the ground-truth SQL in terms of operation\u2014specifically, it does not count distinct charge periods per resource. The ground-truth focuses on counting how many distinct charge periods are present for each resource, rather than simply listing the records that span multiple periods. This fundamental difference leads to a significant misalignment with the original question's intent, hence a lower score.",
+    "generated_sql": "SELECT \"ResourceId\", \"ChargePeriodStart\", \"ChargePeriodEnd\" FROM focus_billing_table WHERE DATE_TRUNC('MONTH', \"ChargePeriodStart\") /* Condition to identify charges spanning multiple periods */ <> DATE_TRUNC('MONTH', \"ChargePeriodEnd\") ORDER BY \"ResourceId\", \"ChargePeriodStart\"",
+    "ground_truth_sql": "SELECT \"ResourceId\", COUNT(DISTINCT \"ChargePeriodStart\") AS chargeperiodcount FROM focus_billing_table WHERE \"ResourceId\" IS NOT NULL AND \"ChargePeriodStart\" IS NOT NULL GROUP BY \"ResourceId\" HAVING COUNT(DISTINCT \"ChargePeriodStart\") > 1 ORDER BY chargeperiodcount DESC;"
+  },
+  {
+    "question": "List charges that started in one billing period and ended in the next.",
+    "score": 0.3,
+    "explanation": "The generated SQL does not accurately capture the user's intent of listing charges that start in one billing period and end in the next. Instead, it checks if the start is within the billing period and ends after the billing period, which may not effectively filter those charges that cross billing periods. Furthermore, the generated columns include \"ChargeCategory\" and \"ChargeFrequency,\" which are not present in the ground-truth SQL, indicating a divergence in the data being queried. The resulting total of zero rows suggests a severe deviation from the expected output.",
+    "generated_sql": "SELECT \"ChargeCategory\", \"ChargeDescription\", \"ChargeFrequency\", \"ChargePeriodStart\", \"ChargePeriodEnd\", \"BillingPeriodStart\", \"BillingPeriodEnd\" FROM focus_billing_table WHERE \"ChargePeriodStart\" >= \"BillingPeriodStart\" AND \"ChargePeriodStart\" <= \"BillingPeriodEnd\" AND \"ChargePeriodEnd\" > \"BillingPeriodEnd\" ORDER BY \"BillingPeriodStart\", \"ChargePeriodStart\"",
+    "ground_truth_sql": "SELECT \"ResourceId\", \"ChargeDescription\", \"ChargePeriodStart\", \"ChargePeriodEnd\", \"BillingPeriodStart\", \"BillingPeriodEnd\" FROM focus_billing_table WHERE DATE_TRUNC('month', \"ChargePeriodStart\") <> DATE_TRUNC('month', \"ChargePeriodEnd\") AND \"ChargePeriodStart\" IS NOT NULL AND \"ChargePeriodEnd\" IS NOT NULL ORDER BY \"ChargePeriodStart\";"
+  },
+  {
+    "question": "Show daily cost trends using charge period data.",
+    "score": 0.7,
+    "explanation": "1) The generated SQL captures the intent of showing daily cost trends by using the \"ChargePeriodStart\" for grouping and summing the costs, but it fails to cast the date to a standard date format, which might affect clarity in the results. 2) The results include a similar number of rows and total sums for \"BilledCost\" and \"EffectiveCost,\" but the order is DESC in the generated SQL instead of ASC as in the ground-truth, which might affect the interpretation of trends over time.",
+    "generated_sql": "SELECT \"ChargePeriodStart\", ROUND(SUM(\"BilledCost\"), 2) AS \"BilledCost\", ROUND(SUM(\"EffectiveCost\"), 2) AS \"EffectiveCost\" FROM focus_billing_table WHERE NOT \"ChargePeriodStart\" IS NULL GROUP BY \"ChargePeriodStart\" ORDER BY \"ChargePeriodStart\" DESC",
+    "ground_truth_sql": "SELECT CAST(\"ChargePeriodStart\" AS DATE) AS chargedate, SUM(\"BilledCost\") AS totalbilledcost, SUM(\"EffectiveCost\") AS totaleffectivecost FROM focus_billing_table WHERE \"ChargePeriodStart\" IS NOT NULL GROUP BY CAST(\"ChargePeriodStart\" AS DATE) ORDER BY chargedate ASC;"
+  },
+  {
+    "question": "Compare BilledCost across billing periods for the same SKU.",
+    "score": 0.8,
+    "explanation": "1. The generated SQL correctly groups by `SkuId` and `BillingPeriodStart`, and it calculates the sum of `BilledCost`, which aligns with the intent of comparing billed costs across billing periods for the same SKU. However, it introduces a rounding function that was not present in the ground-truth SQL, which might lead to discrepancies in the total billed costs.\n2. The column naming for the total billed cost is different (i.e., \"BilledCost\" instead of \"totalbilledcost\"), but this difference does not affect the logical correctness of the output. The results summary indicates that both queries return the same total number of rows, showing that they work similarly in terms of filtering and aggregating data, thus confirming a high level of correctness despite the rounding and naming difference.",
+    "generated_sql": "SELECT \"SkuId\", ROUND(SUM(\"BilledCost\"), 2) AS \"BilledCost\", \"BillingPeriodStart\" FROM focus_billing_table WHERE NOT \"SkuId\" IS NULL GROUP BY \"SkuId\", \"BillingPeriodStart\" ORDER BY \"SkuId\", \"BillingPeriodStart\"",
+    "ground_truth_sql": "SELECT \"SkuId\", \"BillingPeriodStart\", SUM(\"BilledCost\") AS totalbilledcost FROM focus_billing_table WHERE \"SkuId\" IS NOT NULL AND \"BillingPeriodStart\" IS NOT NULL GROUP BY \"SkuId\", \"BillingPeriodStart\" ORDER BY \"SkuId\", \"BillingPeriodStart\";"
+  },
+  {
+    "question": "Find any billing periods shorter than 30 days.",
+    "score": null,
+    "explanation": null,
+    "generated_sql": null,
+    "ground_truth_sql": "SELECT \"BillingPeriodStart\", \"BillingPeriodEnd\", (\"BillingPeriodEnd\" - \"BillingPeriodStart\") AS periodlength FROM focus_billing_table WHERE \"BillingPeriodStart\" IS NOT NULL AND \"BillingPeriodEnd\" IS NOT NULL AND (\"BillingPeriodEnd\" - \"BillingPeriodStart\") < INTERVAL '30 days' GROUP BY \"BillingPeriodStart\", \"BillingPeriodEnd\" ORDER BY \"BillingPeriodStart\";",
+    "error": "cannot unpack non-iterable NoneType object"
+  },
+  {
+    "question": "Which charges fall entirely outside of the current billing period?",
+    "score": 1.0,
+    "explanation": "The generated SQL correctly captures the intent of the question by filtering for charges whose periods fall entirely outside the specified billing period, matching the conditions of the ground-truth SQL. Both the generated and ground-truth SQL produce the same columns and handle the date comparisons in a semantically equivalent manner, resulting in the same number of rows (0). This confirms the logical correctness and completeness of the generated SQL in relation to the ground-truth.",
+    "generated_sql": "SELECT \"ChargeDescription\", \"ChargePeriodStart\", \"ChargePeriodEnd\", \"BillingPeriodStart\", \"BillingPeriodEnd\" FROM focus_billing_table WHERE (\"ChargePeriodEnd\" < \"BillingPeriodStart\") OR (\"ChargePeriodStart\" > \"BillingPeriodEnd\") ORDER BY \"ChargePeriodStart\"",
+    "ground_truth_sql": "SELECT \"ChargeDescription\", \"ChargePeriodStart\", \"ChargePeriodEnd\", \"BillingPeriodStart\", \"BillingPeriodEnd\" FROM focus_billing_table WHERE \"ChargePeriodStart\" IS NOT NULL AND \"ChargePeriodEnd\" IS NOT NULL AND \"BillingPeriodStart\" IS NOT NULL AND \"BillingPeriodEnd\" IS NOT NULL AND (\"ChargePeriodEnd\" < \"BillingPeriodStart\" OR \"ChargePeriodStart\" > \"BillingPeriodEnd\") ORDER BY \"ChargePeriodStart\";"
+  },
+  {
+    "question": "Group total ListCost by billing period for each ServiceCategory.",
+    "score": 0.3,
+    "explanation": "1. The generated SQL includes an extra column, \"ServiceName\", which is not part of the ground-truth SQL and does not align with the intended output of aggregating costs by \"ServiceCategory\" and \"BillingPeriodStart\". This changes the essence of the result and does not reflect the user's request accurately.\n2. The generated SQL also groups by \"ServiceName\" in addition to the required columns, leading to a significantly different number of total rows (84 vs. 15). This suggests that the aggregation behavior differs, hence the failure to meet the original intent of grouping total ListCost specifically by billing period and service category only.",
+    "generated_sql": "SELECT \"ServiceCategory\", \"ServiceName\", ROUND(SUM(\"ListCost\"), 2) AS \"ListCost\", \"BillingPeriodStart\" FROM focus_billing_table WHERE NOT \"ListCost\" IS NULL GROUP BY \"BillingPeriodStart\", \"ServiceCategory\", \"ServiceName\" ORDER BY \"BillingPeriodStart\" DESC, \"ServiceCategory\", \"ListCost\" DESC",
+    "ground_truth_sql": "SELECT \"BillingPeriodStart\", \"ServiceCategory\", SUM(\"ListCost\") AS total_listcost FROM focus_billing_table WHERE \"BillingPeriodStart\" IS NOT NULL AND \"ServiceCategory\" IS NOT NULL AND \"ListCost\" IS NOT NULL GROUP BY \"BillingPeriodStart\", \"ServiceCategory\" ORDER BY \"BillingPeriodStart\", \"ServiceCategory\";"
+  },
+  {
+    "question": "List any overlapping charge periods for the same resource.",
+    "score": null,
+    "explanation": null,
+    "generated_sql": null,
+    "ground_truth_sql": "SELECT a.\"ResourceId\", a.\"ChargePeriodStart\" AS starta, a.\"ChargePeriodEnd\" AS enda, b.\"ChargePeriodStart\" AS startb, b.\"ChargePeriodEnd\" AS endb FROM focus_billing_table a JOIN focus_billing_table b ON a.\"ResourceId\" = b.\"ResourceId\" AND a.\"ChargePeriodStart\" < b.\"ChargePeriodEnd\" AND a.\"ChargePeriodEnd\" > b.\"ChargePeriodStart\" AND a.ctid <> b.ctid ORDER BY a.\"ResourceId\", starta, startb;",
+    "error": "cannot unpack non-iterable NoneType object"
+  }
+]
