@@ -3,10 +3,10 @@ import json
 import sqlparse
 
 # Load JSON files
-with open("results json/evaluation_results_base.json", encoding="utf-8") as f1:
+with open("evaluation_results_base.json", encoding="utf-8") as f1:
     base = json.load(f1)
 
-with open("results json/evaluation_results_loop.json", encoding="utf-8") as f2:
+with open("evaluation_results_loop.json", encoding="utf-8") as f2:
     loop = json.load(f2)
 
 # Index by question for fast lookup
